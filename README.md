@@ -2,7 +2,7 @@
 
 ![](images/main.png)
 
-一些和 Pokemon Go 相關的資料分析。
+一些和 Pokemon Go 相關的資料分析。請看 [Rmarkdown 檔](http://bit.ly/2brm0ii) 。
 
 目前進度：
 
