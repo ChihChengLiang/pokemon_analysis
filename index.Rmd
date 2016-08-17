@@ -1,0 +1,107 @@
+---
+title: "Pokemon Go Analysis"
+output: html_document
+---
+
+
+```{r message=FALSE}
+library(dplyr)
+library(magrittr)
+library(ggplot2)
+library(png)
+library(knitr)
+```
+
+```{r}
+opts_chunk$set(out.width='900px', dpi=200)
+```
+
+
+## 神奇寶貝的能力值分佈如何？
+
+資料來自 [這份 gist](https://gist.github.com/noxwyll/8c821408b1d943c3e500d91d77266368/f264e42f2e83bbe845841717f74b276c9801ba7d)
+
+```{r}
+pokemon_df <- read.csv("data/pokemons.csv", stringsAsFactors = F) %>%
+  tbl_df %>%
+  mutate(PokedexHeightCM = PokedexHeightM*100) 
+pokemon_df %>% glimpse()
+```
+
+```{r}
+annotate_img <- function(img, x_center, y_center, width, height) {
+    annotation_raster(
+      img,
+      xmin=x_center-width/2,
+      xmax=x_center+width/2,
+      ymin=y_center-height/2,
+      ymax=y_center+height/2)
+}
+annotate_icon <- function(pokemonId, x_center, y_center, width, height) {
+  pokemon_icon <- paste0("icons/", pokemonId, ".png") %>% readPNG
+  annotate_img(pokemon_icon, x_center, y_center, width, height)
+}
+
+plot_pokemons <- function(x_coords, y_coords, icon_size = c(10, 10)) {
+  mapply(
+    annotate_icon,
+    pokemon_df$PkMn,
+    x_coords,
+    y_coords,
+    icon_size[1],
+    icon_size[2]
+    )
+}
+```
+
+
+```{r}
+plot_2_axis <- function(x_axis, y_axis, icon_size = c(10, 10)) {
+  pokemon_df %>% 
+  ggplot(aes_string(x= x_axis, y = y_axis)) +
+  geom_point() + 
+  plot_pokemons(
+    pokemon_df[[x_axis]],
+    pokemon_df[[y_axis]],
+    icon_size
+    )
+}
+plot_2_axis("BaseAttack", "BaseDefense")
+```
+
+```{r}
+plot_2_axis("BaseAttack", "BaseStamina", icon_size=c(10, 20))
+```
+
+```{r}
+plot_2_axis("BaseDefense", "BaseStamina", icon_size = c(10, 25))
+```
+
+# 神奇寶貝的體重、身高分布如何？
+
+```{r}
+ash <- readPNG("images/Ash_Ketchum_DP.png")
+banana <- readPNG("images/banana.png")
+giraffe <- readPNG("images/giraffe.png")
+
+pokemon_df %>%
+  ggplot(aes(x = PokedexWeightKg, y = PokedexHeightCM)) +
+  geom_point() +
+  scale_x_log10(limits = c(NA,1400)) +
+  scale_y_log10() +
+  geom_vline(xintercept=43.1) +
+  geom_hline(yintercept=165) +
+  annotate_img(ash, log10(43.1), log10(165), 0.2, 0.2) +
+  annotate_img(banana, log10(0.15), log10(20), 0.2, 0.1) +
+  annotate_img(giraffe, log10(828), log10(517), 0.2, 0.2) +
+  plot_pokemons(
+    log10(pokemon_df$PokedexWeightKg),
+    log10(pokemon_df$PokedexHeightCM),
+    icon_size = c(0.1, 0.1)) +
+  annotate("text", x = 43.1, y = 250, label = "Ash 165cm, 43Kg") +
+  annotate("text", x = 210, y = 1100, label = "Onix 880cm, 210Kg") +
+  annotate("text", x = 850, y = 800, label = "Giraffe ♀ \n517cm, 828Kg") +
+  annotate("text", x= 0.15, y = 220, label = "Haunter\n160cm, 0.1Kg") +
+  annotate("text", x= 0.15, y = 25, label = "Banana\n20cm, 0.15Kg")
+```
+
