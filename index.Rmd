@@ -1,10 +1,15 @@
 ---
 title: "Pokemon Go Analysis"
+author: "Chih-Cheng Liang"
 output: 
   html_document:
     includes:
       in_header: templates/header.html
+    toc: yes
 ---
+
+Pokemon Go 讓神奇寶貝的世界在現實中實現了，曾經身為一個訓練師，對神奇寶貝有許多的疑問。如今科技的方便讓我們能夠透過資料解決這些問題。本網頁原始檔和資料可在 [github repo](https://github.com/ChihChengLiang/pokemon_analysis) 取得。
+
 
 ```{r message=FALSE}
 library(dplyr)
@@ -12,11 +17,13 @@ library(magrittr)
 library(ggplot2)
 library(png)
 library(knitr)
+library(data.table)
 ```
 
 ```{r opts, echo=FALSE}
 opts_chunk$set(
-  dpi=150
+  dpi=150,
+  cache=TRUE
   )
 ```
 
@@ -83,7 +90,7 @@ plot_2_axis("BaseDefense", "BaseStamina", icon_size = c(10, 25))
 
 在 Pokemon go 裡，神奇寶貝物種間的強度受三樣基礎值支配：攻擊、防禦、耐力。各挑兩軸做成三張圖。越往右上角的代表越強，在最右上角的若非神獸，就是常常待在道館塔上的那些。
 
-# 神奇寶貝的體重、身高分布如何？
+# 神奇寶貝種族間的體重、身高分布如何？
 
 ```{r weight_vs_height}
 ash <- readPNG("images/Ash_Ketchum_DP.png")
@@ -116,4 +123,112 @@ pokemon_df %>%
 3. 大岩蛇全身都是石頭，可是比長頸鹿高卻又比長頸鹿輕
 4. 卡比獸雖然比較難追，但是一不小心人可能會比隆隆岩重哦
 
+# 神奇寶貝個體間的體重身高分佈為何？
+
+同種族的神奇寶貝，是否會有離譜的體重身高分配？如下圖所示？
+
+或是身高與體重是否有某種關係？
+
+![](https://pbs.twimg.com/media/CoMBZivXgAA7znY.jpg)
+
+為回答這些問題，使用 openintro 上的一份 [資料集](https://www.openintro.org/stat/data/?data=pokemon)。這份資料集搜集 4 種共 75 隻神奇寶貝進化前與進化後的資料，上面有身高體重欄位供我們了解之間的關係。
+
+```{r download_data_set, eval=FALSE, echo=FALSE}
+download.file("https://www.openintro.org/stat/data/pokemon.csv", "data/pokemon75.csv")
+```
+
+```{r}
+pokemon75_df <- read.csv("data/pokemon75.csv", stringsAsFactors = F) %>% tbl_df() %>%
+  left_join(
+    pokemon_df %>% select(PkMn, Identifier),
+    by = c("species"= "Identifier")
+    )
+
+pokemon75_df %>% glimpse() 
+```
+
+```{r}
+pokemon75_df %>%
+  select(PkMn, species, weight, height) %>%
+  ggplot(aes(x= weight, y = height, color=species)) +
+  geom_point() +
+  geom_smooth(method=lm, se=FALSE) +
+  mapply(
+    annotate_icon,
+    pokemon75_df$PkMn,
+    pokemon75_df$weight,
+    pokemon75_df$height,
+    0.5,
+    0.01
+    )
+
+```
+
+身高與體重似乎呈現明顯正相關！
+
+接著看看這些田野調查的敘述統計
+
+```{r}
+summary_df <- pokemon75_df %>%
+  group_by(PkMn, species) %>%
+  summarise(
+    count = n(),
+    mean(weight),
+    mean(height),
+    sd(weight),
+    sd(height),
+    cor(weight, height)
+    )
+summary_df %>% kable
+```
+
+而官方的資料
+
+```{r}
+pokedex_df <- pokemon_df %>%
+  select(PkMn, Identifier, PokedexWeightKg, PokedexHeightM, WeightStdDev, HeightStdDev) %>%
+  filter(PkMn %in% summary_df$PkMn)
+pokedex_df %>% kable()
+```
+
+就平均數而言，圖鑑資料與田野調查非常吻合。田野的標準差可能受到樣本太少的影響，和圖鑑資料差距有點大。
+
+蛤？你非得要做檢定和迴歸嗎？請到 Github 上看 Rmd 原始檔，裡面有做但沒有在此列出。
+
+```{r eval=FALSE, echo=FALSE}
+# 是否與圖鑑的有顯著差異？無
+summary_df %>% 
+  left_join(pokedex_df, by="PkMn") %>%
+  mutate(
+    weight_z_score = (`mean(weight)` - PokedexWeightKg)/WeightStdDev,
+    height_z_score = (`mean(height)` - PokedexHeightM)/HeightStdDev) %>%
+  mutate(
+    weight_p_value = 2 * pnorm(abs(weight_z_score), lower.tail = F),
+    height_p_value = 2 * pnorm(abs(height_z_score), lower.tail = F)
+  ) %>%
+  select(species, weight_z_score, height_z_score, weight_p_value, height_p_value) %>%
+  kable
+
+```
+
+
+```{r warning=FALSE, eval=FALSE, echo=FALSE}
+# 迴歸線
+model_group <- pokemon75_df %>%
+  group_by(species) %>%
+  do(model = lm(height ~weight, data =.))
+
+model_group %>% summarise(species, r_square = summary(model)$r.squared) %>% kable
+
+model_group %>% 
+  do(
+    data.frame(
+      species = .$species,
+      variables = names(coef(.$model)),
+      coef= coef(.$model)
+      )
+    ) %>%
+  kable
+
+```
 
