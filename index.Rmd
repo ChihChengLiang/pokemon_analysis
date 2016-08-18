@@ -14,8 +14,10 @@ library(png)
 library(knitr)
 ```
 
-```{r}
-opts_chunk$set(out.width='900px', dpi=200)
+```{r opts, echo=FALSE}
+opts_chunk$set(
+  dpi=150
+  )
 ```
 
 
@@ -23,14 +25,14 @@ opts_chunk$set(out.width='900px', dpi=200)
 
 資料來自 [這份 gist](https://gist.github.com/noxwyll/8c821408b1d943c3e500d91d77266368/f264e42f2e83bbe845841717f74b276c9801ba7d)
 
-```{r}
+```{r read_and_clean}
 pokemon_df <- read.csv("data/pokemons.csv", stringsAsFactors = F) %>%
   tbl_df %>%
   mutate(PokedexHeightCM = PokedexHeightM*100) 
 pokemon_df %>% glimpse()
 ```
 
-```{r}
+```{r auxiliary_functions }
 annotate_img <- function(img, x_center, y_center, width, height) {
     annotation_raster(
       img,
@@ -57,7 +59,7 @@ plot_pokemons <- function(x_coords, y_coords, icon_size = c(10, 10)) {
 ```
 
 
-```{r}
+```{r attack_vs_defense}
 plot_2_axis <- function(x_axis, y_axis, icon_size = c(10, 10)) {
   pokemon_df %>% 
   ggplot(aes_string(x= x_axis, y = y_axis)) +
@@ -71,11 +73,11 @@ plot_2_axis <- function(x_axis, y_axis, icon_size = c(10, 10)) {
 plot_2_axis("BaseAttack", "BaseDefense")
 ```
 
-```{r}
+```{r attack_vs_stamina}
 plot_2_axis("BaseAttack", "BaseStamina", icon_size=c(10, 20))
 ```
 
-```{r}
+```{r defense_vs_stamina}
 plot_2_axis("BaseDefense", "BaseStamina", icon_size = c(10, 25))
 ```
 
@@ -83,7 +85,7 @@ plot_2_axis("BaseDefense", "BaseStamina", icon_size = c(10, 25))
 
 # 神奇寶貝的體重、身高分布如何？
 
-```{r}
+```{r weight_vs_height}
 ash <- readPNG("images/Ash_Ketchum_DP.png")
 banana <- readPNG("images/banana.png")
 giraffe <- readPNG("images/giraffe.png")
@@ -101,7 +103,7 @@ pokemon_df %>%
   plot_pokemons(
     log10(pokemon_df$PokedexWeightKg),
     log10(pokemon_df$PokedexHeightCM),
-    icon_size = c(0.1, 0.1)) +
+    icon_size = c(0.14, 0.1)) +
   annotate("text", x = 43.1, y = 250, label = "Ash 165cm, 43Kg") +
   annotate("text", x = 210, y = 1100, label = "Onix 880cm, 210Kg") +
   annotate("text", x = 850, y = 800, label = "Giraffe ♀ \n517cm, 828Kg") +
