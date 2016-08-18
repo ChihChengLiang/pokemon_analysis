@@ -1,8 +1,10 @@
 ---
 title: "Pokemon Go Analysis"
-output: html_document
+output: 
+  html_document:
+    includes:
+      in_header: templates/header.html
 ---
-
 
 ```{r message=FALSE}
 library(dplyr)
@@ -111,3 +113,5 @@ pokemon_df %>%
 2. 鬼系那兩隻居然進化成耿鬼後會從沒重量變成 40 公斤！（耿鬼在小智腳邊，迷唇姐背後）。一個傳說是耿鬼是鬼斯通附身在皮可西身上，因此得到重量。
 3. 大岩蛇全身都是石頭，可是比長頸鹿高卻又比長頸鹿輕
 4. 卡比獸雖然比較難追，但是一不小心人可能會比隆隆岩重哦
+
+
